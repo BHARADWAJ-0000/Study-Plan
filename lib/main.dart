@@ -307,8 +307,16 @@ class _MobileWorkspace extends StatefulWidget {
   State<_MobileWorkspace> createState() => _MobileWorkspaceState();
 }
 
-class _MobileWorkspaceState extends State<_MobileWorkspace> {
+class _MobileWorkspaceState extends State<_MobileWorkspace>
+    with SingleTickerProviderStateMixin {
   final MonkeymaxApi _api = MonkeymaxApi();
+  final TextEditingController _noteController = TextEditingController();
+  late final AnimationController _profileAnimation = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 8),
+  )..repeat();
+  final List<String> _notes = [];
+  int _points = 1250;
   final List<_TaskData> _tasks = [
     _TaskData(title: 'Review core concepts', timing: '25 min', done: true),
     _TaskData(title: 'Active recall quiz', timing: '20 min'),
@@ -317,6 +325,35 @@ class _MobileWorkspaceState extends State<_MobileWorkspace> {
   int _tab = 0;
   bool _loading = false;
   String _status = 'Your plan is ready for today';
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    _profileAnimation.dispose();
+    super.dispose();
+  }
+
+  Future<void> _scanMaterial() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'txt', 'doc', 'docx'],
+    );
+    if (!mounted || result == null || result.files.isEmpty) return;
+    setState(() {
+      _points += 25;
+      _status = '${result.files.first.name} added to your study space';
+    });
+  }
+
+  void _saveNote() {
+    final note = _noteController.text.trim();
+    if (note.isEmpty) return;
+    setState(() {
+      _notes.insert(0, note);
+      _noteController.clear();
+      _points += 10;
+    });
+  }
 
   Future<void> _generatePlan() async {
     setState(() {
@@ -421,7 +458,21 @@ class _MobileWorkspaceState extends State<_MobileWorkspace> {
           ],
         ),
         const SizedBox(height: 8),
-        ..._tasks.map((task) => _TaskRow(title: task.title, timing: task.timing, done: task.done, onTap: () => setState(() => task.done = !task.done))),
+        OutlinedButton.icon(
+          onPressed: _scanMaterial,
+          icon: const Icon(Icons.picture_as_pdf_rounded),
+          label: const Text('Import notes or PDF'),
+        ),
+        const SizedBox(height: 10),
+        ..._tasks.map((task) => _TaskRow(
+              title: task.title,
+              timing: task.timing,
+              done: task.done,
+              onTap: () => setState(() {
+                task.done = !task.done;
+                if (task.done) _points += 15;
+              }),
+            )),
       ],
     );
   }
@@ -470,20 +521,74 @@ class _MobileWorkspaceState extends State<_MobileWorkspace> {
     );
   }
 
+  Widget _notesPage() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+      children: [
+        const Text('Notes', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        const Text('Keep the ideas you want to remember.', style: TextStyle(color: Colors.white60)),
+        const SizedBox(height: 20),
+        TextField(
+          controller: _noteController,
+          minLines: 4,
+          maxLines: 7,
+          decoration: InputDecoration(
+            hintText: 'Write a quick note or paste a key idea...',
+            filled: true,
+            fillColor: const Color(0xFF111827),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(onPressed: _saveNote, icon: const Icon(Icons.save_rounded), label: const Text('Save note')),
+        const SizedBox(height: 22),
+        if (_notes.isEmpty)
+          const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Your saved notes will appear here.', style: TextStyle(color: Colors.white60))))
+        else
+          ..._notes.map((note) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: const Color(0xFF111827), borderRadius: BorderRadius.circular(16)),
+                child: Text(note, style: const TextStyle(height: 1.4)),
+              )),
+      ],
+    );
+  }
+
   Widget _profile() {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
       children: [
         const Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
         const SizedBox(height: 22),
-        CircleAvatar(radius: 38, backgroundColor: const Color(0xFF8B5CF6), child: Text(widget.userName.characters.first.toUpperCase(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800))),
-        const SizedBox(height: 12),
-        Center(child: Text(widget.userName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800))),
-        const SizedBox(height: 4),
-        Center(child: Text(widget.focus, style: const TextStyle(color: Colors.white60))),
+        AnimatedBuilder(
+          animation: _profileAnimation,
+          builder: (context, child) => Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(-1 + _profileAnimation.value * 2, -1),
+                end: Alignment(1, 1 - _profileAnimation.value * 2),
+                colors: const [Color(0xFF6D28D9), Color(0xFF0891B2), Color(0xFF111827)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: child,
+          ),
+          child: Column(
+            children: [
+              CircleAvatar(radius: 38, backgroundColor: Colors.white24, child: Text(widget.userName.substring(0, 1).toUpperCase(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800))),
+              const SizedBox(height: 12),
+              Text(widget.userName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(widget.focus, style: const TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
         const SizedBox(height: 28),
         const _ProfileRow(icon: Icons.local_fire_department_rounded, label: 'Current streak', value: '12 days'),
-        const _ProfileRow(icon: Icons.bolt_rounded, label: 'Monkey points', value: '1,250 MP'),
+        _ProfileRow(icon: Icons.bolt_rounded, label: 'Monkey points', value: '$_points MP'),
         const _ProfileRow(icon: Icons.check_circle_outline_rounded, label: 'Tasks completed', value: '24'),
       ],
     );
@@ -491,7 +596,7 @@ class _MobileWorkspaceState extends State<_MobileWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [_home(), _plan(), _quiz(), _profile()];
+    final pages = [_home(), _plan(), _quiz(), _notesPage(), _profile()];
     return Scaffold(
       backgroundColor: const Color(0xFF0B0D14),
       body: SafeArea(child: pages[_tab]),
@@ -504,6 +609,7 @@ class _MobileWorkspaceState extends State<_MobileWorkspace> {
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today_rounded), label: 'Plan'),
           NavigationDestination(icon: Icon(Icons.quiz_outlined), selectedIcon: Icon(Icons.quiz_rounded), label: 'Quiz'),
+          NavigationDestination(icon: Icon(Icons.note_alt_outlined), selectedIcon: Icon(Icons.note_alt_rounded), label: 'Notes'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
         ],
       ),
