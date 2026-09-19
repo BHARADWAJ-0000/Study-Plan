@@ -355,6 +355,40 @@ class _MobileWorkspaceState extends State<_MobileWorkspace>
     });
   }
 
+  void _showHelper() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF111827),
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Ask Monkey', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text('Get a quick study nudge while you work.', style: TextStyle(color: Colors.white60)),
+            const SizedBox(height: 16),
+            ...[
+              'Explain my weakest topic simply',
+              'Give me a 10-minute revision sprint',
+              'Turn my next task into a quiz',
+            ].map((prompt) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF67E8F9)),
+                  title: Text(prompt),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text('$prompt is ready in your plan.')));
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _generatePlan() async {
     setState(() {
       _loading = true;
@@ -447,6 +481,51 @@ class _MobileWorkspaceState extends State<_MobileWorkspace>
             Expanded(child: _MobileMetric(label: 'Progress', value: '${((completed / _tasks.length) * 100).round()}%', icon: Icons.track_changes_rounded, color: const Color(0xFF22D3EE))),
             const SizedBox(width: 12),
             const Expanded(child: _MobileMetric(label: 'Streak', value: '12 days', icon: Icons.local_fire_department_rounded, color: Color(0xFFF59E0B))),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: const Color(0xFF111827), borderRadius: BorderRadius.circular(18)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Text('Daily goal', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text('40 / 60 min', style: TextStyle(color: Color(0xFF67E8F9), fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: const LinearProgressIndicator(
+                  minHeight: 8,
+                  value: 0.66,
+                  backgroundColor: Color(0xFF252B3A),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF22D3EE)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Quick actions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            TextButton.icon(onPressed: _showHelper, icon: const Icon(Icons.auto_awesome_rounded, size: 16), label: const Text('Ask Monkey')),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _QuickAction(icon: Icons.note_add_rounded, label: 'New note', color: const Color(0xFF8B5CF6), onTap: () => setState(() => _tab = 3))),
+            const SizedBox(width: 10),
+            Expanded(child: _QuickAction(icon: Icons.picture_as_pdf_rounded, label: 'Scan PDF', color: const Color(0xFFF97316), onTap: _scanMaterial)),
+            const SizedBox(width: 10),
+            Expanded(child: _QuickAction(icon: Icons.quiz_rounded, label: 'Take quiz', color: const Color(0xFF22C55E), onTap: () => setState(() => _tab = 2))),
           ],
         ),
         const SizedBox(height: 26),
@@ -631,6 +710,37 @@ class _MobileMetric extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: const Color(0xFF111827), borderRadius: BorderRadius.circular(18)),
       child: Row(children: [Icon(icon, color: color), const SizedBox(width: 10), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)), const SizedBox(height: 3), Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color))])]),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickAction({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF111827),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
