@@ -1,17 +1,30 @@
-# study_revision_app
+# Monkeymax Study Plan
 
-A new Flutter project.
+Monkeymax is a portrait-first Flutter study planner with personalized onboarding,
+adaptive task tracking, quizzes, and an optional Gemini-powered plan generator.
 
-## Getting Started
+## Run the app
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+Build the release APK with:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter build apk --release --no-tree-shake-icons
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Optional Gemini backend
+
+The app works offline. To enable Gemini plan generation, start the proxy with a
+server-side key:
+
+```bash
+cd backend
+GEMINI_API_KEY="your-key" node server.js
+```
+
+Never embed the Gemini key in the APK.
+>>>>>>> origin/main
