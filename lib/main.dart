@@ -339,10 +339,22 @@ class _MobileWorkspaceState extends State<_MobileWorkspace>
       allowedExtensions: ['pdf', 'txt', 'doc', 'docx'],
     );
     if (!mounted || result == null || result.files.isEmpty) return;
-    setState(() {
-      _points += 25;
-      _status = '${result.files.first.name} added to your study space';
-    });
+    final file = result.files.first;
+    setState(() => _status = 'Uploading ${file.name}...');
+    try {
+      final job = await _api.uploadMaterial(file);
+      if (!mounted) return;
+      setState(() {
+        _points += 25;
+        _status = '${file.name} queued for analysis (${job.status})';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _points += 25;
+        _status = '${file.name} saved locally. Start the backend to analyze it.';
+      });
+    }
   }
 
   void _saveNote() {

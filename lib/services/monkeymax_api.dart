@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 
 class MonkeymaxApi {
@@ -21,6 +22,40 @@ class MonkeymaxApi {
     }
 
     return GeneratedPlan.fromJson(payload);
+  }
+
+  Future<UploadJob> uploadMaterial(PlatformFile file) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_defaultUrl/api/v1/materials/upload'),
+    );
+    request.files.add(
+      file.path != null
+          ? await http.MultipartFile.fromPath('file', file.path!, filename: file.name)
+          : http.MultipartFile.fromBytes('file', file.bytes ?? const [], filename: file.name),
+    );
+    final response = await request.send().timeout(const Duration(seconds: 20));
+    final body = jsonDecode(await response.stream.bytesToString()) as Map<String, dynamic>;
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(body['error'] ?? 'Material upload failed');
+    }
+    return UploadJob.fromJson(body);
+  }
+}
+
+class UploadJob {
+  final String jobId;
+  final String materialId;
+  final String status;
+
+  const UploadJob({required this.jobId, required this.materialId, required this.status});
+
+  factory UploadJob.fromJson(Map<String, dynamic> json) {
+    return UploadJob(
+      jobId: json['job_id'] as String? ?? '',
+      materialId: json['material_id'] as String? ?? '',
+      status: json['status'] as String? ?? 'queued',
+    );
   }
 }
 
