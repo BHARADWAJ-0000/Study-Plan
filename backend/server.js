@@ -62,23 +62,17 @@ async function generatePlan(input) {
   return { source: 'gemini', plan: parsed.plan };
 }
 
-const server = http.createServer(async (request, response) => {
-  if (request.method === 'OPTIONS') return send(response, 204, {});
-  if (request.method === 'GET' && request.url === '/health') {
-    return send(response, 200, { ok: true, aiConfigured: Boolean(apiKey) });
-  }
-  if (request.method !== 'POST' || request.url !== '/generate-plan') {
-    return send(response, 404, { error: 'Not found' });
-  }
+import { requestHandler } from './app.js';
 
+const server = http.createServer(async (request, response) => {
   try {
-    const input = await readBody(request);
-    return send(response, 200, await generatePlan(input));
+    await requestHandler(request, response);
   } catch (error) {
-    return send(response, 502, { error: error.message || 'Unable to generate a plan' });
+    response.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: error.message } }));
   }
 });
 
-server.listen(port, () => {
-  console.log(`Monkeymax backend listening on http://localhost:${port}`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Monkeymax API listening on http://0.0.0.0:${port}`);
 });
